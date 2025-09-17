@@ -1,1 +1,58 @@
 #include <iostream>
+#include <vector>
+#include <queue>
+#include <limits>
+using namespace std;
+const int INF = numeric_limits<int>::max();
+// Структура рабови тежина
+struct Edge {
+    int to, weight;
+};
+vector<int> dijkstra(int n, int start, const vector<vector<Edge>>& graph) {
+    vector<int> dist(n, INF);
+    dist[start] = 0;
+
+    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>> pq;
+    pq.push({0, start});
+
+    while (!pq.empty()) {
+        auto [d, u] = pq.top();
+        pq.pop();
+
+        if (d > dist[u]) continue;
+        for (auto& edge : graph[u]) {
+            int v = edge.to;
+            int w = edge.weight;
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pq.push({dist[v], v});
+            }
+        }
+    }
+return dist;
+}
+int main() {
+    int n, m;
+    cout << "Vnesi broj na teminja i broj na rebra: ";
+    cin >> n >> m;
+    vector<vector<Edge>> graph(n);
+    cout << "Vnesi gi rebrata (u v w): " << endl;
+    for (int i = 0; i < m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        graph[u].push_back({v, w});
+        graph[v].push_back({u, w}); // ако е неориентиран граф
+    }
+    int start;
+    cout << "Poceten chvor: ";
+    cin >> start;
+    vector<int> dist = dijkstra(n, start, graph);
+    cout << "Najkratki rastojanija od chvorot " << start << ":" << endl;
+    for (int i = 0; i < n; i++) {
+        if (dist[i] == INF)
+            cout << i << ": INF" << endl;
+        else
+            cout << i << ": " << dist[i] << endl;
+    }
+    return 0;
+}
