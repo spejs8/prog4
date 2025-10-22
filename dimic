@@ -1,0 +1,93 @@
+#include<iostream>
+#include<vector>
+#include<queue>
+#include<cmath>
+
+using namespace std;
+
+class edge {
+public:
+    int v;
+    int flow;
+    int cap;
+    int rev;
+};
+class dinic {
+public:
+    int v;
+    vector<vector<edge>> adj;
+    vector<int> level;
+    vector<int> start;
+    dinic(int v) {
+        this->v = v;
+        adj.resize(v);
+        level.resize(v);
+        start.resize(v);
+    }
+
+    void addedge(int u, int v, int cap) {
+        edge a{v, 0, cap, (int)adj[v].size()};
+        edge b{u, 0, 0, (int)adj[u].size()};
+        adj[u].push_back(a);
+        adj[v].push_back(b);
+    }
+    bool bfs(int s, int t) {
+        for (int i=0; i<level.size(); i++) {
+            level[i]=-1;
+        }
+        level[s] = 0;
+        queue<int> q;
+        q.push(s);
+        while (q.size()!=0) {
+            int u = q.front();
+            q.pop();
+            for (edge e : adj[u]) {
+                if (level[e.v]==-1 && e.flow<e.cap) {
+                    level[e.v]=level[u] + 1;
+                    q.push(e.v);
+                }
+            }
+        }
+        return (level[t]!=-1);  
+        }
+    int dfs(int u, int flow, int t) {
+        if (u==t)
+            return flow; 
+        for (; start[u]<(int)adj[u].size(); start[u]++) {
+            if (level[adj[u][start[u]].v] == level[u]+1 && adj[u][start[u]].flow < adj[u][start[u]].cap) {
+                int vrednost=dfs(adj[u][start[u]].v, min(flow, adj[u][start[u]].cap - adj[u][start[u]].flow), t);
+                if (vrednost!=0) {
+                    adj[u][start[u]].flow+=vrednost;
+                    adj[adj[u][start[u]].v][adj[u][start[u]].rev].flow-=vrednost;
+                    return vrednost;
+                }
+            }
+        }
+        return 0;
+    }
+    int maxFlow(int s, int t) {
+        if (s==t) { return 0; }
+        int protok=0;
+        while (bfs(s, t)) {
+            for (int i=0; i<start.size(); i++) {
+                start[i]=0;
+            }
+            while (int flow = dfs(s, 1000000, t))
+                protok+=flow;
+        }
+        return protok;
+    }
+};
+
+int main() {
+    int v,e;
+    cin>>v>>e;
+    dinic dinic(v);
+    for (int i=0; i<e; i++) {
+        int tmp,tmp1,tmp2;
+        cin>>tmp>>tmp1>>tmp2;
+        dinic.addedge(tmp,tmp1,tmp2);
+    }
+    cout<<dinic.maxFlow(0, v-1)<<endl;
+    return 0;
+}
