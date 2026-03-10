@@ -34,7 +34,7 @@ Matrix3x3 matMul(Matrix3x3 A, Matrix3x3 B) {
 
 int main() {
     ifstream inputFile("monkey.obj");
-    ofstream outputFile("new_monkey.obj");
+    ofstream outputFile("new_miska.obj");
     string line;
 
     if (!inputFile.is_open()) return 1;
