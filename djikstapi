@@ -1,0 +1,95 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <queue>
+
+using namespace std;
+
+class BigInt {
+public:
+    string val;
+
+    BigInt(long long v = 0) : val(to_string(v)) {}
+    BigInt(string s) : val(s) {
+        if (val.empty()) val = "0";
+    }
+
+    // Помошна функција за споредба
+    bool operator<(const BigInt& other) const {
+        if (val.length() != other.val.length())
+            return val.length() < other.val.length();
+        return val < other.val;
+    }
+
+    bool operator==(const BigInt& other) const {
+        return val == other.val;
+    }
+
+    // Собирање
+    BigInt operator+(const BigInt& other) const {
+        string res = "";
+        int i = val.length() - 1, j = other.val.length() - 1, carry = 0;
+        while (i >= 0 || j >= 0 || carry) {
+            int sum = carry + (i >= 0 ? val[i--] - '0' : 0) + (j >= 0 ? other.val[j--] - '0' : 0);
+            res += (char)(sum % 10 + '0');
+            carry = sum / 10;
+        }
+        reverse(res.begin(), res.end());
+        return BigInt(res);
+    }
+
+    // Множење
+    BigInt operator*(const BigInt& other) const {
+        int n = val.length(), m = other.val.length();
+        vector<int> res(n + m, 0);
+        for (int i = n - 1; i >= 0; i--) {
+            for (int j = m - 1; j >= 0; j--) {
+                int mul = (val[i] - '0') * (other.val[j] - '0');
+                int sum = mul + res[i + j + 1];
+                res[i + j + 1] = sum % 10;
+                res[i + j] += sum / 10;
+            }
+        }
+        string s = "";
+        for (int x : res) if (!(s.empty() && x == 0)) s += (char)(x + '0');
+        return s.empty() ? BigInt("0") : BigInt(s);
+    }
+
+    // Дефинирање на излез (за лесно печатење)
+    friend ostream& operator<<(ostream& os, const BigInt& bi) {
+        os << bi.val;
+        return os;
+    }
+};
+
+// Компаратор за приоритетна редица
+struct Node {
+    BigInt multiple;
+    BigInt prime;
+
+    bool operator>(const Node& other) const {
+        return other.multiple < multiple;
+    }
+};
+
+void findPrimesUpTo(int limit) {
+    // Приоритетна редица каде го чуваме најмалиот множител на простите броеви
+    priority_queue<Node, vector<Node>, greater<Node>> pq;
+
+    cout << "Прости броеви до " << limit << ":\n2 ";
+    pq.push({BigInt(4), BigInt(2)});
+
+    for (int i = 3; i <= limit; i++) {
+        BigInt current(i);
+
+        if (current < pq.top().multiple) {
+            // Ако i е помало од најмалиот множител во редицата, тогаш i е прост број
+            cout << i << " ";
+            pq.push({current * current, current});
+        } else {
+            // Ако i е сложен број, го ажурираме множителот во редицата
+            while (pq.top().multiple == current) {
+                Node top = pq.top();
+                pq.pop();
+                pq.push({top.multiple + top.prime, top.prime});
