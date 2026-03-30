@@ -1,0 +1,81 @@
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+// Користиме unsigned long long за броеви до 2^64 - 1
+typedef unsigned long long ull;
+typedef __uint128_t u128; // Потребно за безбедно множење без пречекорување
+
+// Функција за модуларно множење (a * b) % m
+ull fast_mul(ull a, ull b, ull m) {
+    return (u128)a * b % m;
+}
+
+// Функција за брзо модуларно степенување (base^exp) % mod
+ull fast_pow(ull base, ull exp, ull mod) {
+    ull res = 1;
+    base %= mod;
+    while (exp > 0) {
+        if (exp % 2 == 1) res = fast_mul(res, base, mod);
+        base = fast_mul(base, base, mod);
+        exp /= 2;
+    }
+    return res;
+}
+
+// Помошна функција за Miller-Rabin тестот
+bool miller_rabin_test(ull n, ull a, ull d, int s) {
+    ull x = fast_pow(a, d, n);
+    if (x == 1 || x == n - 1) return true;
+    
+    for (int r = 1; r < s; r++) {
+        x = fast_mul(x, x, n);
+        if (x == n - 1) return true;
+    }
+    return false;
+}
+
+// Главна функција за проверка дали бројот е прост
+bool is_prime_optimized(ull n) {
+    if (n < 2) return false;
+    if (n == 2 || n == 3) return true;
+    if (n % 2 == 0 || n % 3 == 0) return false;
+
+    // Факторизација на n-1 како 2^s * d
+    ull d = n - 1;
+    int s = 0;
+    while (d % 2 == 0) {
+        d /= 2;
+        s++;
+    }
+
+    // База на сведоци (Witnesses) кои се доволни за проверка на сите 64-битни броеви
+    // Овие броеви се математички докажани како доволни за опсегот до 2^64
+    static const vector<ull> witnesses = {
+        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37
+    };
+
+    for (ull a : witnesses) {
+        if (n <= a) break;
+        if (!miller_rabin_test(n, a, d, s)) return false;
+    }
+    return true;
+}
+
+int main() {
+    // Оптимизација на влез/излез
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    ull n;
+    if (!(cin >> n)) return 0;
+
+    if (is_prime_optimized(n)) {
+        cout << "YES" << endl;
+    } else {
+        cout << "NO" << endl;
+    }
+
+    return 0;
+}
