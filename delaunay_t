@@ -1,0 +1,125 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <algorithm>
+
+using namespace std;
+
+// Структура за точка со вградена споредба
+struct Point {
+    double x, y;
+    Point(double _x = 0, double _y = 0) : x(_x), y(_y) {}
+
+    bool operator==(const Point& other) const {
+        return (abs(x - other.x) < 1e-9 && abs(y - other.y) < 1e-9);
+    }
+};
+
+// Структура за раб (линија меѓу две точки)
+struct Edge {
+    Point a, b;
+    Edge(Point _a, Point _b) : a(_a), b(_b) {}
+
+    bool operator==(const Edge& other) const {
+        return (a == other.a && b == other.b) || (a == other.b && b == other.a);
+    }
+};
+
+// Структура за триаголник
+struct Triangle {
+    Point p1, p2, p3;
+
+    Triangle(Point _p1, Point _p2, Point _p3) : p1(_p1), p2(_p2), p3(_p3) {}
+
+    // Проверка дали точката p се наоѓа внатре во опишаната кружница на триаголникот
+    bool containsInCircumcircle(Point p) const {
+        double x1 = p1.x, y1 = p1.y;
+        double x2 = p2.x, y2 = p2.y;
+        double x3 = p3.x, y3 = p3.y;
+
+        double D = 2 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
+        if (abs(D) < 1e-9) return false;
+
+        double ux = ((x1 * x1 + y1 * y1) * (y2 - y3) + (x2 * x2 + y2 * y2) * (y3 - y1) + (x3 * x3 + y3 * y3) * (y1 - y2)) / D;
+        double uy = ((x1 * x1 + y1 * y1) * (x3 - x2) + (x2 * x2 + y2 * y2) * (x1 - x3) + (x3 * x3 + y3 * y3) * (x2 - x1)) / D;
+        
+        double radiusSq = pow(x1 - ux, 2) + pow(y1 - uy, 2);
+        double distSq = pow(p.x - ux, 2) + pow(p.y - uy, 2);
+        
+        return distSq < radiusSq;
+    }
+
+    bool hasVertex(Point p) const {
+        return p1 == p || p2 == p || p3 == p;
+    }
+};
+
+vector<Triangle> bowyerWatson(vector<Point> points) {
+    // Дефинирање на супер-триаголник кој ги опфаќа сите точки
+    Point s1(-5000, -5000), s2(5000, -5000), s3(0, 5000);
+    vector<Triangle> triangulation;
+    triangulation.push_back(Triangle(s1, s2, s3));
+
+    for (const auto& p : points) {
+        vector<Triangle> badTriangles;
+        // Најди ги сите триаголници чија кружница ја содржи новата точка
+        for (const auto& t : triangulation) {
+            if (t.containsInCircumcircle(p)) badTriangles.push_back(t);
+        }
+
+        vector<Edge> polygon;
+        for (const auto& t : badTriangles) {
+            Edge edges[3] = { Edge(t.p1, t.p2), Edge(t.p2, t.p3), Edge(t.p3, t.p1) };
+            for (int i = 0; i < 3; i++) {
+                bool shared = false;
+                for (const auto& otherT : badTriangles) {
+                    if (&t == &otherT) continue;
+                    Edge otherEdges[3] = { Edge(otherT.p1, otherT.p2), Edge(otherT.p2, otherT.p3), Edge(otherT.p3, otherT.p1) };
+                    for (int j = 0; j < 3; j++) {
+                        if (edges[i] == otherEdges[j]) shared = true;
+                    }
+                }
+                if (!shared) polygon.push_back(edges[i]);
+            }
+        }
+
+        // Избриши ги "лошите" триаголници
+        triangulation.erase(remove_if(triangulation.begin(), triangulation.end(), [&](Triangle t) {
+            for (const auto& bt : badTriangles) {
+                if (t.p1 == bt.p1 && t.p2 == bt.p2 && t.p3 == bt.p3) return true;
+            }
+            return false;
+        }), triangulation.end());
+
+        // Формирај нови триаголници од рабовите на полигонот кон новата точка
+        for (const auto& edge : polygon) {
+            triangulation.push_back(Triangle(edge.a, edge.b, p));
+        }
+    }
+
+    // Отстрани ги триаголниците кои допираат до теме на супер-триаголникот
+    vector<Triangle> finalResult;
+    for (const auto& t : triangulation) {
+        if (!(t.hasVertex(s1) || t.hasVertex(s2) || t.hasVertex(s3))) {
+            finalResult.push_back(t);
+        }
+    }
+
+    return finalResult;
+}
+
+int main() {
+    vector<Point> points = { {10, 10}, {150, 10}, {75, 120}, {80, 40}, {30, 80} };
+
+    auto result = bowyerWatson(points);
+
+    cout << "Вкупно триаголници: " << result.size() << endl;
+    for (size_t i = 0; i < result.size(); ++i) {
+        printf("Триаголник %zu: (%.1f, %.1f), (%.1f, %.1f), (%.1f, %.1f)\n", 
+               i + 1, result[i].p1.x, result[i].p1.y, 
+               result[i].p2.x, result[i].p2.y, 
+               result[i].p3.x, result[i].p3.y);
+    }
+
+    return 0;
+}
